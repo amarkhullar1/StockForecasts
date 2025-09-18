@@ -40,10 +40,11 @@ class ForecastCreateView(LoginRequiredMixin, CreateView):
         
         if ticker_id:
             try:
-                ticker = Ticker.objects.get(id=ticker_id)
+                ticker = Ticker.objects.filter(id=ticker_id).first()
+            except (TypeError, ValueError):
+                ticker = None
+            if ticker:
                 initial['ticker'] = ticker
-            except Ticker.DoesNotExist:
-                pass
         
         if period:
             initial['period'] = period

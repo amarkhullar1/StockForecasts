@@ -59,6 +59,7 @@ def readme_view(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('', TickerListView.as_view(), name='ticker-list'),
     path('forecast/new/', ForecastCreateView.as_view(), name='forecast-create'),
     path('forecast/history/', ForecastHistoryView.as_view(), name='forecast-history'),
