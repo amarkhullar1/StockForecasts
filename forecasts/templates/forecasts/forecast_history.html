@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Forecast History - Admin</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .filters { background: #f5f5f5; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .filters select, .filters input { margin: 5px; padding: 5px; }
+        .filters button { background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 3px; cursor: pointer; }
+        .forecast-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .forecast-table th, .forecast-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .forecast-table th { background-color: #f2f2f2; }
+        .current { background-color: #e8f5e8; }
+        .historic { background-color: #fff5f5; }
+        .positive { color: green; font-weight: bold; }
+        .negative { color: red; font-weight: bold; }
+        .pagination { margin-top: 20px; text-align: center; }
+        .pagination a { padding: 8px 16px; text-decoration: none; border: 1px solid #ddd; margin: 0 4px; }
+        .pagination .current { background-color: #007bff; color: white; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { margin-right: 15px; }
+    </style>
+</head>
+<body>
+    <h1>Forecast History - Admin View</h1>
+    
+    <div class="nav-links">
+        <a href="{% url 'ticker-list' %}">← Back to Ticker List</a>
+        <a href="{% url 'admin:index' %}">Admin Panel</a>
+    </div>
+    
+    <div class="filters">
+        <form method="GET">
+            <label>Ticker:</label>
+            <select name="ticker">
+                <option value="">All Tickers</option>
+                {% for ticker in tickers %}
+                    <option value="{{ ticker.id }}" {% if request.GET.ticker == ticker.id|stringformat:"s" %}selected{% endif %}>
+                        {{ ticker.ticker }} - {{ ticker.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <label>Period:</label>
+            <select name="period">
+                <option value="">All Periods</option>
+                {% for period in periods %}
+                    <option value="{{ period }}" {% if request.GET.period == period %}selected{% endif %}>{{ period }}</option>
+                {% endfor %}
+            </select>
+            
+            <label>Analyst:</label>
+            <input type="text" name="analyst" placeholder="Search analyst..." value="{{ request.GET.analyst }}">
+            
+            <label>Status:</label>
+            <select name="is_current">
+                <option value="">All</option>
+                <option value="true" {% if request.GET.is_current == 'true' %}selected{% endif %}>Current Only</option>
+                <option value="false" {% if request.GET.is_current == 'false' %}selected{% endif %}>Historic Only</option>
+            </select>
+            
+            <button type="submit">Filter</button>
+            <a href="{% url 'forecast-history' %}" style="margin-left: 10px;">Clear Filters</a>
+        </form>
+    </div>
+    
+    <table class="forecast-table">
+        <thead>
+            <tr>
+                <th>Ticker</th>
+                <th>Analyst</th>
+                <th>Period</th>
+                <th>EPS Prediction</th>
+                <th>View</th>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for forecast in forecasts %}
+            <tr class="{% if forecast.is_current %}current{% else %}historic{% endif %}">
+                <td>{{ forecast.ticker.ticker }} - {{ forecast.ticker.name }}</td>
+                <td>{{ forecast.analyst.username }}</td>
+                <td>{{ forecast.period }}</td>
+                <td class="{% if forecast.direction > 0 %}positive{% else %}negative{% endif %}">
+                    {{ forecast.direction }}
+                </td>
+                <td>
+                    {% if forecast.view %}
+                        <details>
+                            <summary>View Details</summary>
+                            <p>{{ forecast.view }}</p>
+                        </details>
+                    {% else %}
+                        <em>No details</em>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if forecast.is_current %}
+                        <span style="color: green;">✓ Current</span>
+                    {% else %}
+                        <span style="color: red;">✗ Historic</span>
+                    {% endif %}
+                </td>
+                <td>{{ forecast.submitted_at|date:"M d, Y H:i" }}</td>
+                <td>{{ forecast.updated_at|date:"M d, Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 20px;">
+                    <em>No forecasts found matching the criteria.</em>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if request.GET.ticker %}&ticker={{ request.GET.ticker }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}{% if request.GET.analyst %}&analyst={{ request.GET.analyst }}{% endif %}{% if request.GET.is_current %}&is_current={{ request.GET.is_current }}{% endif %}">&laquo; First</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.ticker %}&ticker={{ request.GET.ticker }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}{% if request.GET.analyst %}&analyst={{ request.GET.analyst }}{% endif %}{% if request.GET.is_current %}&is_current={{ request.GET.is_current }}{% endif %}">Previous</a>
+        {% endif %}
+        
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.ticker %}&ticker={{ request.GET.ticker }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}{% if request.GET.analyst %}&analyst={{ request.GET.analyst }}{% endif %}{% if request.GET.is_current %}&is_current={{ request.GET.is_current }}{% endif %}">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.ticker %}&ticker={{ request.GET.ticker }}{% endif %}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}{% if request.GET.analyst %}&analyst={{ request.GET.analyst }}{% endif %}{% if request.GET.is_current %}&is_current={{ request.GET.is_current }}{% endif %}">Last &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 20px; padding: 10px; background: #f9f9f9; border-radius: 3px;">
+        <strong>Summary:</strong> Showing {{ forecasts.count }} forecast(s) 
+        {% if request.GET.ticker or request.GET.period or request.GET.analyst or request.GET.is_current %}
+            (filtered)
+        {% endif %}
+    </div>
+</body>
+</html> 

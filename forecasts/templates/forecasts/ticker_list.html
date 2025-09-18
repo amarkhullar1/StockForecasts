@@ -1,0 +1,61 @@
+{% load forecast_filters %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Forecasts</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .search-box { margin-bottom: 20px; }
+        .search-box input { padding: 8px; width: 200px; }
+        .ticker-card { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .forecast-item { background: #f9f9f9; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .positive { color: green; }
+        .negative { color: red; }
+        .add-forecast { background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Stock Forecasts</h1>
+    
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'forecast-history' %}" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 3px;">View Forecast History (Admin)</a>
+        <a href="{% url 'readme' %}" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 3px; margin-left: 10px;">📖 Read Documentation</a>
+    </div>
+    
+    <div class="search-box">
+        <form method="GET">
+            <input type="text" name="search" placeholder="Search tickers..." value="{{ request.GET.search }}">
+            <button type="submit">Search</button>
+        </form>
+    </div>
+
+    {% for ticker in tickers %}
+    <div class="ticker-card">
+        <h3>{{ ticker.ticker }} - {{ ticker.name }}</h3>
+        
+        {% for period in periods %}
+            {% with current_forecast=ticker.forecast_set.all|filter_current:period %}
+                <div class="forecast-item">
+                    <strong>{{ period }} Forecast:</strong>
+                    {% if current_forecast %}
+                        <span class="{% if current_forecast.direction > 0 %}positive{% else %}negative{% endif %}">
+                            EPS: {{ current_forecast.direction }}
+                        </span>
+                        <br>
+                        <small>By: {{ current_forecast.analyst.username }} | Updated: {{ current_forecast.updated_at|date:"M d, Y H:i" }}</small>
+                        {% if current_forecast.view %}
+                            <br><em>{{ current_forecast.view }}</em>
+                        {% endif %}
+                    {% else %}
+                        <em>No forecast available</em>
+                    {% endif %}
+                    <a href="{% url 'forecast-create' %}?ticker={{ ticker.id }}&period={{ period }}" class="add-forecast">Add/Update</a>
+                </div>
+            {% endwith %}
+        {% endfor %}
+    </div>
+    {% empty %}
+    <p>No tickers found.</p>
+    {% endfor %}
+</body>
+</html> 
